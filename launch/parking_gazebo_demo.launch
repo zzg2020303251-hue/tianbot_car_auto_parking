@@ -1,0 +1,70 @@
+<launch>
+  <arg name="robot_name" default="tianbot_mini"/>
+  <arg name="gui" default="true"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="world_name" default="$(find tianbot_mini_parking)/worlds/parking_lot.world"/>
+
+  <include file="$(find tianbot_mini)/launch/simulation.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <!--
+    这里只启动 gmapping 建图，不启动 tianbot_mini/launch/slam.launch。
+    原来的 slam.launch 会额外启动 move_base 和 RViz，容易和我们的 Hybrid A* 泊车节点抢目标点与 cmd_vel。
+  -->
+  <group ns="$(arg robot_name)">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" clear_params="true">
+      <param name="map_frame" value="$(arg robot_name)/map"/>
+      <param name="odom_frame" value="$(arg robot_name)/odom"/>
+      <param name="base_frame" value="$(arg robot_name)/base_link"/>
+      <param name="map_update_interval" value="0.50"/>
+      <param name="maxRange" value="6.0"/>
+      <param name="maxUrange" value="5.5"/>
+      <param name="sigma" value="0.05"/>
+      <param name="kernelSize" value="1"/>
+      <param name="lstep" value="0.05"/>
+      <param name="astep" value="0.05"/>
+      <param name="iterations" value="5"/>
+      <param name="lsigma" value="0.075"/>
+      <param name="ogain" value="3.0"/>
+      <param name="lskip" value="0"/>
+      <param name="srr" value="0.01"/>
+      <param name="srt" value="0.02"/>
+      <param name="str" value="0.01"/>
+      <param name="stt" value="0.02"/>
+      <param name="linearUpdate" value="0.20"/>
+      <param name="angularUpdate" value="0.10"/>
+      <param name="temporalUpdate" value="0.50"/>
+      <param name="resampleThreshold" value="0.5"/>
+      <param name="particles" value="60"/>
+      <param name="xmin" value="-4.0"/>
+      <param name="ymin" value="-3.0"/>
+      <param name="xmax" value="4.0"/>
+      <param name="ymax" value="3.0"/>
+      <param name="delta" value="0.025"/>
+      <param name="llsamplerange" value="0.01"/>
+      <param name="llsamplestep" value="0.01"/>
+      <param name="lasamplerange" value="0.005"/>
+      <param name="lasamplestep" value="0.005"/>
+      <remap from="scan" to="scan"/>
+      <remap from="map" to="map"/>
+    </node>
+  </group>
+
+  <include file="$(find tianbot_mini_parking)/launch/parking_demo.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="global_frame" value="$(arg robot_name)/map"/>
+    <arg name="base_frame" value="$(arg robot_name)/base_link"/>
+    <arg name="map_topic" value="/$(arg robot_name)/map"/>
+    <arg name="pose_topic" value="/$(arg robot_name)/amcl_pose"/>
+    <arg name="scan_topic" value="/$(arg robot_name)/scan"/>
+    <arg name="cmd_vel_topic" value="/$(arg robot_name)/cmd_vel"/>
+    <arg name="enable_path_smoothing" value="true"/>
+  </include>
+
+  <node if="$(arg use_rviz)" name="parking_rviz" pkg="rviz" type="rviz"
+        args="-d $(find tianbot_mini_parking)/rviz/parking_demo.rviz"/>
+</launch>

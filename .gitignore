@@ -1,0 +1,38 @@
+# ROS / Catkin
+build/
+devel/
+install/
+*.rosinstall
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+env/
+venv/
+
+# Editor configs
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+
+# Logs and runtime
+logs/
+*.log
+*.bag
+
+# Generated and build files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Local setup files
+env.sh
+local_setup.*
+setup.*

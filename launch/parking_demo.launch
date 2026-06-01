@@ -1,0 +1,121 @@
+<launch>
+  <arg name="robot_name" default="tianbot_mini"/>
+  <arg name="global_frame" default="$(arg robot_name)/map"/>
+  <arg name="base_frame" default="$(arg robot_name)/base_link"/>
+  <arg name="map_topic" default="/$(arg robot_name)/map"/>
+  <arg name="pose_topic" default="/$(arg robot_name)/amcl_pose"/>
+  <arg name="goal_topic" default="/move_base_simple/goal"/>
+  <arg name="path_topic" default="/parking_path"/>
+  <arg name="cmd_vel_topic" default="/$(arg robot_name)/cmd_vel"/>
+  <arg name="scan_topic" default="/$(arg robot_name)/scan"/>
+  <arg name="vehicle_length" default="0.28"/>
+  <arg name="vehicle_width" default="0.22"/>
+  <arg name="wheelbase" default="0.18"/>
+  <arg name="max_steering_deg" default="55.0"/>
+  <arg name="grid_resolution" default="0.08"/>
+  <arg name="motion_step" default="0.10"/>
+  <arg name="goal_xy_tolerance" default="0.12"/>
+  <arg name="obstacle_inflation" default="0.16"/>
+  <arg name="allow_in_place_rotation" default="true"/>
+  <arg name="in_place_yaw_step_deg" default="20.0"/>
+  <arg name="enable_path_smoothing" default="true"/>
+  <arg name="enable_path_shortcut" default="true"/>
+  <arg name="shortcut_max_skip" default="20"/>
+  <arg name="smooth_resample_spacing" default="0.05"/>
+  <arg name="smooth_iterations" default="80"/>
+  <arg name="smooth_weight_data" default="0.25"/>
+  <arg name="smooth_weight_smooth" default="0.45"/>
+  <arg name="enable_obstacle_clearance" default="true"/>
+  <arg name="min_obstacle_clearance" default="0.08"/>
+  <arg name="obstacle_clearance_weight" default="0.35"/>
+  <arg name="max_clearance_push" default="0.03"/>
+  <arg name="adjust_colliding_goal" default="true"/>
+  <arg name="goal_adjust_search_radius" default="0.35"/>
+  <arg name="goal_adjust_step" default="0.05"/>
+  <arg name="lookahead_distance" default="0.22"/>
+  <arg name="follower_type" default="lqr"/>
+  <arg name="follower_goal_xy_tolerance" default="0.06"/>
+  <arg name="max_linear_speed" default="0.12"/>
+  <arg name="front_stop_distance" default="0.18"/>
+  <arg name="rear_stop_distance" default="0.18"/>
+  <arg name="lqr_q_lateral" default="8.0"/>
+  <arg name="lqr_q_heading" default="3.0"/>
+  <arg name="lqr_r_angular" default="1.2"/>
+
+  <node pkg="tianbot_mini_parking" type="hybrid_parking_planner_node.py" name="hybrid_parking_planner" output="screen">
+    <param name="global_frame" value="$(arg global_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="map_topic" value="$(arg map_topic)"/>
+    <param name="pose_topic" value="$(arg pose_topic)"/>
+    <param name="goal_topic" value="$(arg goal_topic)"/>
+    <param name="path_topic" value="$(arg path_topic)"/>
+
+    <param name="vehicle_length" value="$(arg vehicle_length)"/>
+    <param name="vehicle_width" value="$(arg vehicle_width)"/>
+    <param name="wheelbase" value="$(arg wheelbase)"/>
+    <param name="max_steering_deg" value="$(arg max_steering_deg)"/>
+    <param name="grid_resolution" value="$(arg grid_resolution)"/>
+    <param name="angle_resolution_deg" value="10.0"/>
+    <param name="motion_step" value="$(arg motion_step)"/>
+    <param name="goal_xy_tolerance" value="$(arg goal_xy_tolerance)"/>
+    <param name="goal_yaw_tolerance_deg" value="12.0"/>
+    <param name="obstacle_inflation" value="$(arg obstacle_inflation)"/>
+    <param name="allow_reverse" value="true"/>
+    <param name="allow_in_place_rotation" value="$(arg allow_in_place_rotation)"/>
+    <param name="in_place_yaw_step_deg" value="$(arg in_place_yaw_step_deg)"/>
+    <param name="max_iterations" value="25000"/>
+    <param name="enable_path_smoothing" value="$(arg enable_path_smoothing)"/>
+    <param name="enable_path_shortcut" value="$(arg enable_path_shortcut)"/>
+    <param name="shortcut_max_skip" value="$(arg shortcut_max_skip)"/>
+    <param name="smooth_resample_spacing" value="$(arg smooth_resample_spacing)"/>
+    <param name="smooth_iterations" value="$(arg smooth_iterations)"/>
+    <param name="smooth_weight_data" value="$(arg smooth_weight_data)"/>
+    <param name="smooth_weight_smooth" value="$(arg smooth_weight_smooth)"/>
+    <param name="enable_obstacle_clearance" value="$(arg enable_obstacle_clearance)"/>
+    <param name="min_obstacle_clearance" value="$(arg min_obstacle_clearance)"/>
+    <param name="obstacle_clearance_weight" value="$(arg obstacle_clearance_weight)"/>
+    <param name="max_clearance_push" value="$(arg max_clearance_push)"/>
+    <param name="adjust_colliding_goal" value="$(arg adjust_colliding_goal)"/>
+    <param name="goal_adjust_search_radius" value="$(arg goal_adjust_search_radius)"/>
+    <param name="goal_adjust_step" value="$(arg goal_adjust_step)"/>
+  </node>
+
+  <node if="$(eval arg('follower_type') == 'pure_pursuit')" pkg="tianbot_mini_parking" type="parking_path_follower_node.py" name="parking_path_follower" output="screen">
+    <param name="global_frame" value="$(arg global_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="path_topic" value="$(arg path_topic)"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <param name="scan_topic" value="$(arg scan_topic)"/>
+
+    <param name="control_rate" value="15.0"/>
+    <param name="lookahead_distance" value="$(arg lookahead_distance)"/>
+    <param name="goal_xy_tolerance" value="$(arg follower_goal_xy_tolerance)"/>
+    <param name="goal_yaw_tolerance_deg" value="8.0"/>
+    <param name="max_linear_speed" value="$(arg max_linear_speed)"/>
+    <param name="max_angular_speed" value="0.8"/>
+    <param name="reverse_heading_threshold_deg" value="105.0"/>
+    <param name="front_stop_distance" value="$(arg front_stop_distance)"/>
+    <param name="rear_stop_distance" value="$(arg rear_stop_distance)"/>
+  </node>
+
+  <node if="$(eval arg('follower_type') == 'lqr')" pkg="tianbot_mini_parking" type="parking_lqr_follower_node.py" name="parking_path_follower" output="screen">
+    <param name="global_frame" value="$(arg global_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="path_topic" value="$(arg path_topic)"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <param name="scan_topic" value="$(arg scan_topic)"/>
+
+    <param name="control_rate" value="15.0"/>
+    <param name="lookahead_distance" value="$(arg lookahead_distance)"/>
+    <param name="goal_xy_tolerance" value="$(arg follower_goal_xy_tolerance)"/>
+    <param name="goal_yaw_tolerance_deg" value="8.0"/>
+    <param name="max_linear_speed" value="$(arg max_linear_speed)"/>
+    <param name="max_angular_speed" value="0.8"/>
+    <param name="reverse_heading_threshold_deg" value="105.0"/>
+    <param name="front_stop_distance" value="$(arg front_stop_distance)"/>
+    <param name="rear_stop_distance" value="$(arg rear_stop_distance)"/>
+    <param name="lqr_q_lateral" value="$(arg lqr_q_lateral)"/>
+    <param name="lqr_q_heading" value="$(arg lqr_q_heading)"/>
+    <param name="lqr_r_angular" value="$(arg lqr_r_angular)"/>
+  </node>
+</launch>

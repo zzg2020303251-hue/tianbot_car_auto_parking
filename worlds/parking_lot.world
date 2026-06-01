@@ -1,0 +1,226 @@
+<?xml version="1.0"?>
+<!--
+  tianbot_mini 自动泊车 Gazebo Classic 仿真场景。
+
+  坐标约定：
+    pose = x y z roll pitch yaw
+    x/y/z 的单位是米，roll/pitch/yaw 的单位是弧度。
+
+  常用修改位置：
+    <pose> 修改物体的位置和朝向。
+    <size> 修改盒子模型的长、宽、高。
+    <collision> 是 Gazebo 物理引擎和激光雷达会感知到的真实碰撞体。
+    <visual> 只是 Gazebo 中看到的外观。
+    <static>true</static> 表示物体固定不动。
+-->
+<sdf version="1.6">
+  <!-- 定义一个名为 tianbot_mini_parking_lot 的 Gazebo 世界。 -->
+  <world name="tianbot_mini_parking_lot">
+    <!-- 默认太阳光模型，用来给场景提供光照。 -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- 默认无限大地面，给小车轮子提供真实接触地面。下面的深色地面只是视觉效果。 -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!--
+      物理引擎设置：
+        type="ode" 表示使用 ODE 动力学引擎。
+        max_step_size=0.001 表示每次物理仿真步长为 1 毫秒。
+        real_time_factor=1.0 表示目标仿真速度与真实时间一致。
+        real_time_update_rate=1000 表示物理引擎目标每秒更新 1000 次。
+    -->
+    <physics name="ode_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- 场景视觉设置：环境光、天空背景色和阴影。 -->
+    <scene>
+      <ambient>0.55 0.55 0.55 1</ambient>
+      <background>0.75 0.82 0.90 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <!--
+      深色停车场地面贴片。
+      这里仅设置 visual 外观，不设置 collision。
+      因为前面的 ground_plane 已经提供了真实地面碰撞。
+    -->
+    <model name="parking_floor">
+      <static>true</static>
+      <!-- 位于世界坐标原点，略微高于地面，避免和 ground_plane 视觉闪烁。 -->
+      <pose>0 0 0.002 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <!-- 地面可视尺寸：长 4.0 米，宽 4.0 米，厚 0.004 米。 -->
+              <size>4.0 2.0 0.004</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.18 0.18 0.18 1</ambient>
+            <diffuse>0.20 0.20 0.20 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      停车位后方墙体。
+      这个物体同时有 collision 和 visual，所以既能看到，也会成为真实障碍物。
+    -->
+    <model name="back_wall">
+      <static>true</static>
+      <!-- x=2.2，y=1.6，z=0.18。增大 y 可以把后墙往更远处移动。 -->
+      <pose>2.2 1.6 0.18 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <!-- 墙体尺寸：长 3.8 米，厚 0.12 米，高 0.36 米。 -->
+          <geometry><box><size>3.8 0.12 0.36</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>3.8 0.12 0.36</size></box></geometry>
+          <material><ambient>0.72 0.72 0.70 1</ambient><diffuse>0.72 0.72 0.70 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 停车通道左侧长边界墙。 -->
+    <model name="left_boundary">
+      <static>true</static>
+      <!-- 位于 y 正方向一侧。增大 y 可以加宽通道。 -->
+      <pose>0.0 2.25 0.12 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <!-- 边界墙尺寸：长 7.2 米，厚 0.10 米，高 0.24 米。 -->
+          <geometry><box><size>7.2 0.10 0.24</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>7.2 0.10 0.24</size></box></geometry>
+          <material><ambient>0.55 0.55 0.55 1</ambient><diffuse>0.55 0.55 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 停车通道右侧长边界墙。 -->
+    <model name="right_boundary">
+      <static>true</static>
+      <!-- 位于 y 负方向一侧。减小 y 可以加宽通道。 -->
+      <pose>0.0 -2.25 0.12 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <!-- 尺寸与左侧边界墙相同。 -->
+          <geometry><box><size>7.2 0.10 0.24</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>7.2 0.10 0.24</size></box></geometry>
+          <material><ambient>0.55 0.55 0.55 1</ambient><diffuse>0.55 0.55 0.55 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      目标车位上方的蓝色已停车辆障碍物。
+      把它的 y 坐标向外移动，可以让中间停车位更宽。
+    -->
+    <model name="parked_car_left">
+      <static>true</static>
+      <!-- x=2.0 让它与车位对齐，y=0.70 表示位于车位上方。 -->
+      <pose>2.0 0.70 0.13 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <!-- 障碍车尺寸：长 0.75 米，宽 0.45 米，高 0.26 米。 -->
+          <geometry><box><size>0.75 0.45 0.26</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.75 0.45 0.26</size></box></geometry>
+          <material><ambient>0.10 0.25 0.65 1</ambient><diffuse>0.10 0.25 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 目标车位下方的红色已停车辆障碍物。 -->
+    <model name="parked_car_right">
+      <static>true</static>
+      <!-- x=2.0 与上方障碍车对齐，y=-0.70 表示位于车位下方。 -->
+      <pose>2.0 -0.70 0.13 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <!-- 尺寸与上方障碍车相同。 -->
+          <geometry><box><size>0.75 0.45 0.26</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.75 0.45 0.26</size></box></geometry>
+          <material><ambient>0.65 0.18 0.12 1</ambient><diffuse>0.65 0.18 0.12 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      中间白色停车引导线。
+      只有 visual，没有 collision，小车和激光雷达不会把它当作障碍物。
+    -->
+    <model name="parking_space_line_center">
+      <static>true</static>
+      <!-- z=0.011 让线略高于地面，保证能看见。 -->
+      <pose>2.0 0.0 0.011 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <!-- 用很薄的白色盒子模拟地面停车线。 -->
+          <geometry><box><size>0.95 0.035 0.01</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 左侧白色停车线，只用于显示。 -->
+    <model name="parking_space_line_left">
+      <static>true</static>
+      <!-- 位于中间目标车位的 y 正方向一侧。 -->
+      <pose>2.0 0.32 0.011 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.95 0.035 0.01</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 右侧白色停车线，只用于显示。 -->
+    <model name="parking_space_line_right">
+      <static>true</static>
+      <!-- 位于中间目标车位的 y 负方向一侧。 -->
+      <pose>2.0 -0.32 0.011 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.95 0.035 0.01</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      绿色目标停车区域标记。
+      这个标记只是视觉提示，本身不会自动成为规划目标。
+      运行 demo 时，需要在 RViz 中把 2D Nav Goal 点到这个标记附近。
+    -->
+    <model name="parking_goal_marker">
+      <static>true</static>
+      <!-- 期望停车位姿的中心标记。 -->
+      <pose>2.0 0.0 0.018 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <!-- 绿色目标区域，大致表示小车最终停车的目标范围。 -->
+          <geometry><box><size>0.30 0.2 0.012</size></box></geometry>
+          <material><ambient>0.0 0.85 0.25 0.65</ambient><diffuse>0.0 0.85 0.25 0.65</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

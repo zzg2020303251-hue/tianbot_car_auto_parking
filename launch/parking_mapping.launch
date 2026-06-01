@@ -1,0 +1,65 @@
+<launch>
+  <!-- 真小车必须使用真实系统时间，避免继承 Gazebo 的 /clock 导致 TF 和雷达时间戳错乱。 -->
+  <param name="/use_sim_time" value="false"/>
+
+  <arg name="robot_name" default="tianbot_mini"/>
+  <arg name="start_bringup" default="true"/>
+  <arg name="start_lidar" default="true"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="lidar_port" default="/dev/ttyUSB1"/>
+
+  <include if="$(arg start_bringup)" file="$(find tianbot_mini)/launch/bringup.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+  </include>
+
+  <include if="$(arg start_lidar)" file="$(find tianbot_mini)/launch/lidar.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="port" value="$(arg lidar_port)"/>
+  </include>
+
+  <!--
+    真小车扫图模式：只启动 gmapping，不启动 move_base。
+    扫图时可以用键盘遥控小车走完整个停车区域，然后用 map_saver 保存地图。
+  -->
+  <group ns="$(arg robot_name)">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" clear_params="true">
+      <param name="map_frame" value="$(arg robot_name)/map"/>
+      <param name="odom_frame" value="$(arg robot_name)/odom"/>
+      <param name="base_frame" value="$(arg robot_name)/base_link"/>
+      <param name="map_update_interval" value="0.80"/>
+      <param name="maxRange" value="12.0"/>
+      <param name="maxUrange" value="8.0"/>
+      <param name="sigma" value="0.05"/>
+      <param name="kernelSize" value="1"/>
+      <param name="lstep" value="0.05"/>
+      <param name="astep" value="0.05"/>
+      <param name="iterations" value="5"/>
+      <param name="lsigma" value="0.075"/>
+      <param name="ogain" value="3.0"/>
+      <param name="lskip" value="0"/>
+      <param name="srr" value="0.01"/>
+      <param name="srt" value="0.02"/>
+      <param name="str" value="0.01"/>
+      <param name="stt" value="0.02"/>
+      <param name="linearUpdate" value="0.20"/>
+      <param name="angularUpdate" value="0.10"/>
+      <param name="temporalUpdate" value="0.80"/>
+      <param name="resampleThreshold" value="0.5"/>
+      <param name="particles" value="80"/>
+      <param name="xmin" value="-10.0"/>
+      <param name="ymin" value="-10.0"/>
+      <param name="xmax" value="10.0"/>
+      <param name="ymax" value="10.0"/>
+      <param name="delta" value="0.025"/>
+      <param name="llsamplerange" value="0.01"/>
+      <param name="llsamplestep" value="0.01"/>
+      <param name="lasamplerange" value="0.005"/>
+      <param name="lasamplestep" value="0.005"/>
+      <remap from="scan" to="scan"/>
+      <remap from="map" to="map"/>
+    </node>
+  </group>
+
+  <node if="$(arg use_rviz)" name="parking_mapping_rviz" pkg="rviz" type="rviz"
+        args="-d $(find tianbot_mini_parking)/rviz/parking_demo.rviz"/>
+</launch>

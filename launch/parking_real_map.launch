@@ -1,0 +1,131 @@
+<launch>
+  <!-- 真小车必须使用真实系统时间，避免继承 Gazebo 的 /clock 导致 TF 和雷达时间戳错乱。 -->
+  <param name="/use_sim_time" value="false"/>
+
+  <arg name="robot_name" default="tianbot_mini"/>
+  <arg name="start_bringup" default="true"/>
+  <arg name="start_lidar" default="true"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="lidar_port" default="/dev/ttyUSB1"/>
+  <arg name="map" default="$(find tianbot_mini_parking)/maps/parking_map.yaml"/>
+
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+  <arg name="enable_path_smoothing" default="true"/>
+  <arg name="enable_path_shortcut" default="true"/>
+  <arg name="shortcut_max_skip" default="20"/>
+  <arg name="smooth_resample_spacing" default="0.05"/>
+  <arg name="smooth_iterations" default="80"/>
+  <arg name="smooth_weight_data" default="0.25"/>
+  <arg name="smooth_weight_smooth" default="0.45"/>
+  <arg name="enable_obstacle_clearance" default="true"/>
+  <arg name="min_obstacle_clearance" default="0.08"/>
+  <arg name="obstacle_clearance_weight" default="0.35"/>
+  <arg name="max_clearance_push" default="0.03"/>
+  <arg name="adjust_colliding_goal" default="true"/>
+  <arg name="goal_adjust_search_radius" default="0.35"/>
+  <arg name="goal_adjust_step" default="0.05"/>
+  <arg name="obstacle_inflation" default="0.02"/>
+  <arg name="lookahead_distance" default="0.16"/>
+  <arg name="max_linear_speed" default="0.08"/>
+  <arg name="front_stop_distance" default="0.10"/>
+  <arg name="rear_stop_distance" default="0.10"/>
+
+  <include if="$(arg start_bringup)" file="$(find tianbot_mini)/launch/bringup.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+  </include>
+
+  <include if="$(arg start_lidar)" file="$(find tianbot_mini)/launch/lidar.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="port" value="$(arg lidar_port)"/>
+  </include>
+
+  <!--
+    固定地图泊车模式：加载已保存地图，启动 AMCL 定位。
+    这里不启动系统 move_base，RViz 的 2D Nav Goal 由我们的 Hybrid A* 节点接收。
+  -->
+  <group ns="$(arg robot_name)">
+    <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)">
+      <param name="frame_id" value="$(arg robot_name)/map"/>
+    </node>
+
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+      <param name="use_map_topic" value="true"/>
+      <param name="odom_model_type" value="diff"/>
+      <param name="odom_alpha1" value="0.4"/>
+      <param name="odom_alpha2" value="0.4"/>
+      <param name="odom_alpha3" value="0.4"/>
+      <param name="odom_alpha4" value="0.4"/>
+      <param name="odom_alpha5" value="0.1"/>
+      <param name="gui_publish_rate" value="10.0"/>
+      <param name="laser_max_beams" value="120"/>
+      <param name="laser_max_range" value="12.0"/>
+      <param name="min_particles" value="1000"/>
+      <param name="max_particles" value="3000"/>
+      <param name="kld_err" value="0.05"/>
+      <param name="kld_z" value="0.99"/>
+      <param name="laser_z_hit" value="0.5"/>
+      <param name="laser_z_short" value="0.05"/>
+      <param name="laser_z_max" value="0.05"/>
+      <param name="laser_z_rand" value="0.5"/>
+      <param name="laser_sigma_hit" value="0.2"/>
+      <param name="laser_lambda_short" value="0.1"/>
+      <param name="laser_model_type" value="likelihood_field"/>
+      <param name="laser_likelihood_max_dist" value="2.0"/>
+      <param name="update_min_d" value="0.01"/>
+      <param name="update_min_a" value="0.02"/>
+      <param name="odom_frame_id" value="$(arg robot_name)/odom"/>
+      <param name="base_frame_id" value="$(arg robot_name)/base_link"/>
+      <param name="global_frame_id" value="$(arg robot_name)/map"/>
+      <param name="resample_interval" value="1"/>
+      <param name="transform_tolerance" value="0.5"/>
+      <param name="recovery_alpha_slow" value="0.0"/>
+      <param name="recovery_alpha_fast" value="0.0"/>
+      <param name="initial_pose_x" value="$(arg initial_pose_x)"/>
+      <param name="initial_pose_y" value="$(arg initial_pose_y)"/>
+      <param name="initial_pose_a" value="$(arg initial_pose_a)"/>
+      <remap from="scan" to="scan"/>
+      <remap from="map" to="map"/>
+      <remap from="initialpose" to="initialpose"/>
+    </node>
+  </group>
+
+  <include file="$(find tianbot_mini_parking)/launch/parking_demo.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="global_frame" value="$(arg robot_name)/map"/>
+    <arg name="base_frame" value="$(arg robot_name)/base_link"/>
+    <arg name="map_topic" value="/$(arg robot_name)/map"/>
+    <arg name="pose_topic" value="/$(arg robot_name)/amcl_pose"/>
+    <arg name="scan_topic" value="/$(arg robot_name)/scan"/>
+    <arg name="cmd_vel_topic" value="/$(arg robot_name)/cmd_vel"/>
+    <arg name="vehicle_length" value="0.16"/>
+    <arg name="vehicle_width" value="0.10"/>
+    <arg name="wheelbase" value="0.10"/>
+    <arg name="grid_resolution" value="0.05"/>
+    <arg name="motion_step" value="0.06"/>
+    <arg name="goal_xy_tolerance" value="0.08"/>
+    <arg name="obstacle_inflation" value="$(arg obstacle_inflation)"/>
+    <arg name="lookahead_distance" value="$(arg lookahead_distance)"/>
+    <arg name="max_linear_speed" value="$(arg max_linear_speed)"/>
+    <arg name="front_stop_distance" value="$(arg front_stop_distance)"/>
+    <arg name="rear_stop_distance" value="$(arg rear_stop_distance)"/>
+    <arg name="enable_path_smoothing" value="$(arg enable_path_smoothing)"/>
+    <arg name="enable_path_shortcut" value="$(arg enable_path_shortcut)"/>
+    <arg name="shortcut_max_skip" value="$(arg shortcut_max_skip)"/>
+    <arg name="smooth_resample_spacing" value="$(arg smooth_resample_spacing)"/>
+    <arg name="smooth_iterations" value="$(arg smooth_iterations)"/>
+    <arg name="smooth_weight_data" value="$(arg smooth_weight_data)"/>
+    <arg name="smooth_weight_smooth" value="$(arg smooth_weight_smooth)"/>
+    <arg name="enable_obstacle_clearance" value="$(arg enable_obstacle_clearance)"/>
+    <arg name="min_obstacle_clearance" value="$(arg min_obstacle_clearance)"/>
+    <arg name="obstacle_clearance_weight" value="$(arg obstacle_clearance_weight)"/>
+    <arg name="max_clearance_push" value="$(arg max_clearance_push)"/>
+    <arg name="adjust_colliding_goal" value="$(arg adjust_colliding_goal)"/>
+    <arg name="goal_adjust_search_radius" value="$(arg goal_adjust_search_radius)"/>
+    <arg name="goal_adjust_step" value="$(arg goal_adjust_step)"/>
+  </include>
+
+  <node if="$(arg use_rviz)" name="parking_real_rviz" pkg="rviz" type="rviz"
+        args="-d $(find tianbot_mini_parking)/rviz/parking_demo.rviz"/>
+</launch>

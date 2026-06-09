@@ -334,6 +334,9 @@ use_rviz:=false
 rosrun rviz rviz -d /home/tianbot/ros1_project_leader_follower/src/tianbot_mini_parking/rviz/parking_demo.rviz
 ```
 
+## 运行视频
+
+[Watch the parking demo](https://github.com/zzg2020303251-hue/tianbot_car_auto_parking/releases/tag/demo-v1)
 ## 安全建议
 
 - 第一次测试时建议架空小车轮子。
